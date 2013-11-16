@@ -1,23 +1,22 @@
 """ main.py is the top level script.
 
-Return "Hello World" at the root URL.
 """
+from globals import app
+import api_server
+import logging
+import urllib2
+import json
+import search_index
 
-import os
-import sys
+FOOD_DATA_URL = 'http://data.sfgov.org/resource/rqzj-sfat.json'
 
-# required to load libraries under server/lib that Flask depends on
-sys.path.insert(1, os.path.join(os.path.abspath('.'), 'server/lib'))
-from flask import Flask
-from flask import render_template
+@app.route('/build-index')
+def buildIndex():
+    response = urllib2.urlopen(FOOD_DATA_URL)
+    raw = response.read()
+    results = json.loads(raw)
+    logging.debug("results %s" % results)
+    search_index.buildIndex(results)
+    return 'ok'
 
-app = Flask(__name__.split('.')[0])
-
-
-@app.route('/')
-@app.route('/<name>')
-def hello(name=None):
-  """ Return hello template at application root URL."""
-  return render_template('hello.html', name=name)
-
-
+buildIndex()
