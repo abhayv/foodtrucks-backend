@@ -10,7 +10,7 @@ The backend is to be used with abhayv/foodtrucks-frontend which uses Google Maps
 food trucks.
 
 The API is as follows:
-
+<pre>
 HTTP GET /search
     Search for food truck locations given a query and a rectangular area defined by coordinates of the south west
     and north east corners:
@@ -31,7 +31,7 @@ HTTP GET /search
 
 HTTP GET /build-index
     Fetches the data again from the source and rebuild the index
-
+</pre>
 
 Testing
 -------
