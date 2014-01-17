@@ -16,10 +16,10 @@ class TestClass:
       assert_equals(search_index.query_index, test_data.sample_query_index)
 
    def test_case_lat_index(self):
-      assert_equals(search_index.latitude_index, test_data.sample_latitude_index)
+      assert_equals(search_index.sorted_latitudes, test_data.sample_latitude_index)
 
    def test_case_lng_index(self):
-      assert_equals(search_index.longitude_index, test_data.sample_longitude_index)
+      assert_equals(search_index.sorted_longitudes, test_data.sample_longitude_index)
 
    def test_case_search_query(self):
       assert_equals(search_index.searchQuery('cold'), set([2, 3]))
@@ -38,9 +38,9 @@ class TestClass:
       assert_equals(search_index.find_ge([10, 20, 30, 40], 20.1), 2)
 
    def test_case_search_lat(self):
-      assert_equals(search_index.latLongQuery([10, 20, 30, 40], 20, 30), set([1, 2]))
-      assert_equals(search_index.latLongQuery([10, 20, 30, 40], 19, 35), set([1, 2]))
-      assert_equals(search_index.latLongQuery([10, 20, 30, 40], 9, 50), set([0, 1, 2, 3]))
+      assert_equals(search_index.find_array_range_matching([10, 20, 30, 40], 20, 30), set([1, 2]))
+      assert_equals(search_index.find_array_range_matching([10, 20, 30, 40], 19, 35), set([1, 2]))
+      assert_equals(search_index.find_array_range_matching([10, 20, 30, 40], 9, 50), set([0, 1, 2, 3]))
 
    def test_case_search1(self):
        all_objectids = [x['objectid'] for x in search_index.all_results]

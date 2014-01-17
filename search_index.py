@@ -5,24 +5,24 @@ import bisect
 import logging
 
 query_index = collections.defaultdict(set)
-latitude_index = []
-latitude_index_to_result_index = {}
-longitude_index = []
-longitude_index_to_result_index = {}
+sorted_latitudes = []
+latitude_to_result_index = collections.defaultdict(set)
+sorted_longitudes = []
+longitude_to_result_index = collections.defaultdict(set)
 all_results = []
 
 def buildIndex(results):
     global all_results
-    global latitude_index
-    global longitude_index
+    global sorted_latitudes
+    global sorted_longitudes
     global query_index
-    global latitude_index_to_result_index
-    global longitude_index_to_result_index
+    global latitude_to_result_index
+    global longitude_to_result_index
     all_results = results
-    latitude_index = []
-    longitude_index = []
-    latitude_index_to_result_index = {}
-    longitude_index_to_result_index = {}
+    sorted_latitudes = []
+    sorted_longitudes = []
+    latitude_to_result_index = collections.defaultdict(set)
+    longitude_to_result_index = collections.defaultdict(set)
     query_index = collections.defaultdict(set)
 
     for i, result in enumerate(results):
@@ -38,19 +38,17 @@ def buildIndex(results):
             logging.info("Result with no lng %s" % result)
             continue
         lng = float(lng)
-        insert_lat = bisect.bisect_right(latitude_index, lat)
-        latitude_index.insert(insert_lat, lat)
-        latitude_index_to_result_index[insert_lat] = i
+        bisect.insort_right(sorted_latitudes, lat)
+        bisect.insort_right(sorted_longitudes, lng)
 
-        insert_lng = bisect.bisect_right(longitude_index, lng)
-        longitude_index.insert(insert_lng, lng)
-        longitude_index_to_result_index[insert_lng] = i
+        latitude_to_result_index[lat].add(i)
+        longitude_to_result_index[lng].add(i)
 
     logging.info("query_index %s" % query_index)
-    logging.info("latitude_index %s" % latitude_index)
-    logging.info("longitude_index %s" % longitude_index)
-    logging.info("latitude_index_to_result %s" % latitude_index_to_result_index)
-    logging.info("longitude_index_to_result %s" % longitude_index_to_result_index)
+    logging.info("sorted_latitudes %s" % sorted_latitudes)
+    logging.info("sorted_longitudes %s" % sorted_longitudes)
+    logging.info("latitude_index_to_result %s" % latitude_to_result_index)
+    logging.info("longitude_index_to_result %s" % longitude_to_result_index)
 
 def searchQuery(query):
     if query == '':
@@ -79,7 +77,7 @@ def find_ge(a, x):
         return i
     raise ValueError
 
-def latLongQuery(array, value_min, value_max):
+def find_array_range_matching(array, value_min, value_max):
     """
     Search for locations in the array
     :param array:
@@ -97,16 +95,23 @@ def latLongQuery(array, value_min, value_max):
     return set()
 
 def search(query, southWestLat, southWestLng, northEastLat, northEastLng):
-    lat_matches = latLongQuery(latitude_index, southWestLat, northEastLat)
+    lat_matches = find_array_range_matching(sorted_latitudes, southWestLat, northEastLat)
     # Convert to result indices
-    lat_matches = set([latitude_index_to_result_index[x] for x in lat_matches])
-    lng_matches = latLongQuery(longitude_index, southWestLng, northEastLng)
+    result_matches_by_lat = set()
+    for x in lat_matches:
+        result_indices = latitude_to_result_index[sorted_latitudes[x]]
+        result_matches_by_lat = result_matches_by_lat.union(result_indices)
+
+    lng_matches = find_array_range_matching(sorted_longitudes, southWestLng, northEastLng)
     # Convert to result indices
-    lng_matches = set([longitude_index_to_result_index[x] for x in lng_matches])
+    result_matches_by_lng = set()
+    for x in lng_matches:
+        result_indices = longitude_to_result_index[sorted_longitudes[x]]
+        result_matches_by_lng = result_matches_by_lng.union(result_indices)
     if query:
         query_matches = searchQuery(query)
-        matches = set.intersection(lat_matches, lng_matches, query_matches)
+        matches = set.intersection(result_matches_by_lat, result_matches_by_lng, query_matches)
     else:
-        matches = set.intersection(lat_matches, lng_matches)
+        matches = set.intersection(result_matches_by_lat, result_matches_by_lng)
     logging.info("search %s" % locals())
     return [all_results[i] for i in range(len(all_results)) if i in matches]

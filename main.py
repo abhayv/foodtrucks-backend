@@ -18,5 +18,3 @@ def buildIndex():
     logging.debug("results %s" % results)
     search_index.buildIndex(results)
     return 'ok'
-
-buildIndex()
