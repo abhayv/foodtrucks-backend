@@ -12,6 +12,12 @@ __author__ = 'abhay'
 import collections
 import bisect
 import logging
+import urllib2
+import json
+
+# We should store the variables below in some persistent store and refresh only as needed.
+# However, for the sake of demonstration, we are currently storing this in memory and preserving across
+# HTTP requests
 
 # Array of all the results. All the other variables will store this array's indices
 all_results = []
@@ -31,6 +37,17 @@ sorted_longitudes = []
 # Dictionary converting a given longitude to a set of result indices that have that longitude
 longitude_to_result_index = collections.defaultdict(set)
 
+FOOD_DATA_URL = 'http://data.sfgov.org/resource/rqzj-sfat.json'
+def build():
+    """
+    Fetch the json data and build the indexes
+    :return:
+    """
+    response = urllib2.urlopen(FOOD_DATA_URL)
+    raw = response.read()
+    results = json.loads(raw)
+    logging.debug("results %s" % results)
+    buildIndex(results)
 
 def buildIndex(results):
     """
@@ -146,6 +163,8 @@ def search(query, southWestLat, southWestLng, northEastLat, northEastLng):
     :param northEastLng:
     :return:
     """
+    if not all_results:
+        build()
     lat_matches = find_array_range_matching(sorted_latitudes, southWestLat, northEastLat)
     # Convert to result indices
     result_matches_by_lat = set()
