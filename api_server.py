@@ -1,3 +1,10 @@
+# Copyright (C) 2014 Abhay Vardhan. All Rights Reserved.
+"""
+Author: abhay.vardhan@gmail.com
+
+Provides the api endpoints
+"""
+
 __author__ = 'abhay'
 
 from flask import Response, request
@@ -5,8 +12,6 @@ from globals import app
 import logging
 import json
 import search_index
-
-from test_data import sample_food_trucks_data
 
 @app.route('/search')
 def search():

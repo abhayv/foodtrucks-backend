@@ -1,3 +1,9 @@
+# Copyright (C) 2014 Abhay Vardhan. All Rights Reserved.
+"""
+Author: abhay.vardhan@gmail.com
+
+We have not yet added tests which exercise the HTTP GET directly.
+"""
 __author__ = 'abhay'
 
 from nose.tools import *
@@ -49,13 +55,13 @@ class TestClass:
                     all_objectids)
 
    def test_case_search2(self):
-       all_objectids = [x['objectid'] for x in search_index.all_results[1:3]]
+       all_objectids = [x['objectid'] for x in search_index.all_results[0:3]]
        results = search_index.search('', 37.7879000978181, -122.398658184604, 37.7901490737255, -122.394594036205)
        assert_equals([x['objectid'] for x in results],
                     all_objectids)
 
    def test_case_search3(self):
-       all_objectids = [x['objectid'] for x in search_index.all_results[1:3]]
+       all_objectids = [x['objectid'] for x in search_index.all_results[0:3]]
        results = search_index.search('', 37.787, -122.398658184604, 37.7901490737255, -122.394)
        assert_equals([x['objectid'] for x in results],
                     all_objectids)

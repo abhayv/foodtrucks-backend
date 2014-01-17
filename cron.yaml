@@ -1,0 +1,4 @@
+cron:
+- description: daily query
+  url: /build-index
+  schedule: every day 02:25

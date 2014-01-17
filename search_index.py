@@ -1,17 +1,47 @@
+# Copyright (C) 2014 Abhay Vardhan. All Rights Reserved.
+"""
+Author: abhay.vardhan@gmail.com
+
+Utility functions to keep a search index for queries, latitudes and longitudes.
+Ideally we would use a geospatial search but instead we look into a rectangular area
+given by the south west corner and the north east corner.
+"""
+
 __author__ = 'abhay'
 
 import collections
 import bisect
 import logging
 
-query_index = collections.defaultdict(set)
-sorted_latitudes = []
-latitude_to_result_index = collections.defaultdict(set)
-sorted_longitudes = []
-longitude_to_result_index = collections.defaultdict(set)
+# Array of all the results. All the other variables will store this array's indices
 all_results = []
 
+# This is an index of all words in food truck metadata text. Each entry is a set of result indices that have that word
+query_index = collections.defaultdict(set)
+
+# Array of latitudes occurring in the results, sorted in ascending order
+sorted_latitudes = []
+
+# Dictionary converting a given latitude to a set of result indices that have that latitude
+latitude_to_result_index = collections.defaultdict(set)
+
+# Array of longitiudes occurring in the results, sorted in ascending order
+sorted_longitudes = []
+
+# Dictionary converting a given longitude to a set of result indices that have that longitude
+longitude_to_result_index = collections.defaultdict(set)
+
+
 def buildIndex(results):
+    """
+    Build the various indexes. The plan is as follows:
+    Process each item in the result and extract all interesting words, latitude, and longitude from the result.
+    The interesting words are put in the query_index.
+    The latitudes and longitudes are sorted. Later when a query for a rectangular area comes, we will use these to find
+    the matching latitudes and longitudes in the range of the rectangle.
+    :param results:
+    :return:
+    """
     global all_results
     global sorted_latitudes
     global sorted_longitudes
@@ -30,12 +60,12 @@ def buildIndex(results):
             query_index[word.lower()].add(i)
         lat = result.get('latitude')
         if not lat:
-            logging.info("Result with no lat %s" % result)
+            logging.debug("Result with no lat %s" % result)
             continue
         lat = float(lat)
         lng = result.get('longitude')
         if not lng:
-            logging.info("Result with no lng %s" % result)
+            logging.debug("Result with no lng %s" % result)
             continue
         lng = float(lng)
         bisect.insort_right(sorted_latitudes, lat)
@@ -44,16 +74,21 @@ def buildIndex(results):
         latitude_to_result_index[lat].add(i)
         longitude_to_result_index[lng].add(i)
 
-    logging.info("query_index %s" % query_index)
-    logging.info("sorted_latitudes %s" % sorted_latitudes)
-    logging.info("sorted_longitudes %s" % sorted_longitudes)
-    logging.info("latitude_index_to_result %s" % latitude_to_result_index)
-    logging.info("longitude_index_to_result %s" % longitude_to_result_index)
+    logging.debug("query_index %s" % query_index)
+    logging.debug("sorted_latitudes %s" % sorted_latitudes)
+    logging.debug("sorted_longitudes %s" % sorted_longitudes)
+    logging.debug("latitude_index_to_result %s" % latitude_to_result_index)
+    logging.debug("longitude_index_to_result %s" % longitude_to_result_index)
+
 
 def searchQuery(query):
+    """
+    Find result indices matching a query
+    :param query:
+    :return:
+    """
     if query == '':
         to_ret = set(range(len(all_results)))
-        logging.info("returning all %s %s" % (to_ret, len(all_results)))
         return to_ret
     tokens = query.split()
     matches = []
@@ -62,6 +97,7 @@ def searchQuery(query):
         matches.append(query_index.get(token.lower(), set()))
     return set.intersection(*matches)
 
+
 def find_le(a, x):
     'Find rightmost value index less than or equal to x'
     i = bisect.bisect_right(a, x)
@@ -69,13 +105,14 @@ def find_le(a, x):
         return i - 1
     raise ValueError
 
+
 def find_ge(a, x):
     'Find leftmost item index greater than or equal to x'
     i = bisect.bisect_left(a, x)
-    logging.info("find_ge %s" % locals())
     if i != len(a):
         return i
     raise ValueError
+
 
 def find_array_range_matching(array, value_min, value_max):
     """
@@ -85,16 +122,30 @@ def find_array_range_matching(array, value_min, value_max):
     :return: set of indices that match
     """
     try:
-        minv = find_ge(array, value_min)
-        logging.info("latLongQuery1 %s" % locals())
-        maxv = find_le(array, value_max)
-        logging.info("latLongQuery2 %s" % locals())
-        return set(range(minv, maxv + 1))
+        mini = find_ge(array, value_min)
+        maxi = find_le(array, value_max)
+        return set(range(mini, maxi + 1))
     except ValueError:
-        logging.info("not found %s" % locals())
+        logging.info("not found %s %s" % (value_min, value_max))
     return set()
 
+
 def search(query, southWestLat, southWestLng, northEastLat, northEastLng):
+    """
+    Main search function.
+    Compute:
+    a) The result indices matching query terms
+    b) Latitude matches in the rectangle defined by input parameters. Convert the latitudes to result indices
+    c) Longitude matches in the rectangle defined by input parameters. Convert the Longitude to result indices
+    d) Intersect all the sets of result indices
+    e) Pull the actual results using the result indices
+    :param query:
+    :param southWestLat:
+    :param southWestLng:
+    :param northEastLat:
+    :param northEastLng:
+    :return:
+    """
     lat_matches = find_array_range_matching(sorted_latitudes, southWestLat, northEastLat)
     # Convert to result indices
     result_matches_by_lat = set()
@@ -113,5 +164,4 @@ def search(query, southWestLat, southWestLng, northEastLat, northEastLng):
         matches = set.intersection(result_matches_by_lat, result_matches_by_lng, query_matches)
     else:
         matches = set.intersection(result_matches_by_lat, result_matches_by_lng)
-    logging.info("search %s" % locals())
     return [all_results[i] for i in range(len(all_results)) if i in matches]
